@@ -27,7 +27,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import urllib.request
 from pathlib import Path
 
 PROJECT_DIR = Path(__file__).resolve().parent
@@ -208,26 +207,33 @@ def run_deepgram(audio, lang, split=False):
             upload = compress_for_upload(audio, tmpdir, split)
             log(f"  compressed for upload: {audio.stat().st_size // 2**20}MB -> "
                 f"{max(1, upload.stat().st_size // 2**20)}MB")
-        body = upload.read_bytes()
         mime = MIME_TYPES.get(upload.suffix.lower(), "application/octet-stream")
 
+        # curl instead of urllib so stalled uploads abort fast (<200kbps for 30s)
+        # and retry on a fresh connection instead of hanging until Deepgram 408s.
         data = None
-        for attempt in (1, 2):
-            req = urllib.request.Request(
-                f"https://api.deepgram.com/v1/listen?{qs}",
-                data=body,
-                headers={"Authorization": f"Token {CFG['DEEPGRAM_API_KEY']}",
-                         "Content-Type": mime},
-                method="POST",
+        for attempt in (1, 2, 3):
+            out_json = Path(tmpdir) / f"response{attempt}.json"
+            proc = subprocess.run(
+                ["curl", "-sS", "-X", "POST",
+                 f"https://api.deepgram.com/v1/listen?{qs}",
+                 "-H", f"Authorization: Token {CFG['DEEPGRAM_API_KEY']}",
+                 "-H", f"Content-Type: {mime}",
+                 "--data-binary", f"@{upload}",
+                 "--max-time", "300",
+                 "--speed-limit", "25600", "--speed-time", "30",
+                 "-o", str(out_json), "-w", "%{http_code}"],
+                capture_output=True, text=True, timeout=320,
             )
-            try:
-                with urllib.request.urlopen(req, timeout=600) as resp:
-                    data = json.loads(resp.read().decode())
+            code = proc.stdout.strip()
+            if proc.returncode == 0 and code.startswith("2"):
+                data = json.loads(out_json.read_text())
                 break
-            except Exception as e:
-                if attempt == 2:
-                    raise
-                log(f"  Deepgram attempt 1 failed ({e}); retrying")
+            err = f"curl exit {proc.returncode}, HTTP {code or '?'} {proc.stderr.strip()[:120]}"
+            if attempt == 3:
+                raise RuntimeError(f"Deepgram failed after 3 attempts ({err})")
+            log(f"  Deepgram attempt {attempt} failed ({err}); retrying on fresh connection")
+            time.sleep(2)
 
     utts = data.get("results", {}).get("utterances", [])
     if not utts:
