@@ -170,14 +170,15 @@ def to_markdown(result, title, rec_date, duration, model, diarized):
             speaker_names[raw] = f"Speaker {len(speaker_names) + 1}"
         return speaker_names[raw]
 
-    # merge consecutive same-speaker segments into turns
+    # merge consecutive same-speaker segments into turns (only when diarized,
+    # otherwise every segment merges into one unreadable block)
     turns = []
     for seg in result.get("segments", []):
         text = seg.get("text", "").strip()
         if not text:
             continue
         spk = seg.get("speaker")
-        if turns and turns[-1]["spk"] == spk:
+        if diarized and turns and turns[-1]["spk"] == spk:
             turns[-1]["text"] += " " + text
         else:
             turns.append({"spk": spk, "start": seg.get("start", 0), "text": text})
