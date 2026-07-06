@@ -1,0 +1,66 @@
+client:
+  name: basic
+  file-system: device-agnostic
+tools: {}
+targets:
+  "CallDrop-arm64-apple-macosx15.0-release.exe": ["<CallDrop-arm64-apple-macosx15.0-release.exe>"]
+  "CallDrop-arm64-apple-macosx15.0-release.module": ["<CallDrop-arm64-apple-macosx15.0-release.module>"]
+  "PackageStructure": ["<PackageStructure>"]
+  "main": ["<CallDrop-arm64-apple-macosx15.0-release.exe>","<CallDrop-arm64-apple-macosx15.0-release.module>"]
+  "test": ["<CallDrop-arm64-apple-macosx15.0-release.exe>","<CallDrop-arm64-apple-macosx15.0-release.module>"]
+default: "main"
+nodes:
+  "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/Sources/CallDrop/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+commands:
+  "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/Sources/CallDrop/CalendarWatcher.swift","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/Sources/CallDrop/CallDropApp.swift","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/Sources/CallDrop/DropView.swift","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/Sources/CallDrop/Recorder.swift"]
+    outputs: ["/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/sources"]
+    description: "Write auxiliary file /Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/sources"
+
+  "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.product/Objects.LinkFileList":
+    tool: write-auxiliary-file
+    inputs: ["<link-file-list>","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CalendarWatcher.swift.o","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CallDropApp.swift.o","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/DropView.swift.o","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/Recorder.swift.o"]
+    outputs: ["/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.product/Objects.LinkFileList"]
+    description: "Write auxiliary file /Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.product/Objects.LinkFileList"
+
+  "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt":
+    tool: write-auxiliary-file
+    inputs: ["<swift-get-version>","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"]
+    outputs: ["/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"]
+    always-out-of-date: "true"
+    description: "Write auxiliary file /Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+
+  "<CallDrop-arm64-apple-macosx15.0-release.exe>":
+    tool: phony
+    inputs: ["/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop"]
+    outputs: ["<CallDrop-arm64-apple-macosx15.0-release.exe>"]
+
+  "<CallDrop-arm64-apple-macosx15.0-release.module>":
+    tool: phony
+    inputs: ["/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CalendarWatcher.swift.o","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CallDropApp.swift.o","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/DropView.swift.o","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/Recorder.swift.o","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/Modules/CallDrop.swiftmodule"]
+    outputs: ["<CallDrop-arm64-apple-macosx15.0-release.module>"]
+
+  "C.CallDrop-arm64-apple-macosx15.0-release.exe":
+    tool: shell
+    inputs: ["/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CalendarWatcher.swift.o","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CallDropApp.swift.o","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/DropView.swift.o","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/Recorder.swift.o","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.product/Objects.LinkFileList"]
+    outputs: ["/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop"]
+    description: "Linking ./.build/arm64-apple-macosx/release/CallDrop"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-L","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release","-o","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop","-module-name","CallDrop","-Xlinker","-no_warn_duplicate_libraries","-emit-executable","-Xlinker","-dead_strip","-Xlinker","-alias","-Xlinker","_CallDrop_main","-Xlinker","_main","-Xlinker","-rpath","-Xlinker","@loader_path","@/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.product/Objects.LinkFileList","-Xlinker","-rpath","-Xlinker","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-6.2/macosx","-target","arm64-apple-macosx15.0","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g"]
+
+  "C.CallDrop-arm64-apple-macosx15.0-release.module":
+    tool: shell
+    inputs: ["/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/Sources/CallDrop/CalendarWatcher.swift","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/Sources/CallDrop/CallDropApp.swift","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/Sources/CallDrop/DropView.swift","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/Sources/CallDrop/Recorder.swift","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/sources"]
+    outputs: ["/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CalendarWatcher.swift.o","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CallDropApp.swift.o","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/DropView.swift.o","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/Recorder.swift.o","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/Modules/CallDrop.swiftmodule"]
+    description: "Compiling Swift Module 'CallDrop' (4 sources)"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","CallDrop","-emit-dependencies","-emit-module","-emit-module-path","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/Modules/CallDrop.swiftmodule","-output-file-map","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/output-file-map.json","-whole-module-optimization","-num-threads","10","-c","@/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/sources","-I","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/Modules","-target","arm64-apple-macosx15.0","-whole-module-optimization","-num-threads","10","-serialize-diagnostics","-O","-j10","-DSWIFT_PACKAGE","-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE","-module-cache-path","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/ModuleCache","-parseable-output","-Xfrontend","-entry-point-function-name","-Xfrontend","CallDrop_main","-swift-version","5","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","calldrop"]
+
+  "PackageStructure":
+    tool: package-structure-tool
+    inputs: ["/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/Sources/CallDrop/","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/Package.swift","/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/Package.resolved"]
+    outputs: ["<PackageStructure>"]
+    description: "Planning build"
+    allow-missing-inputs: true
+

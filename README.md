@@ -48,3 +48,11 @@ transcribe --inbox                  # drain the inbox manually
 - Watcher: `~/Library/LaunchAgents/com.juan.transcribe-inbox.plist`
   (reload with `launchctl unload/load` after edits).
 - Logs: `~/Vibecoding/Transcripts/.logs/transcribe.log`
+
+## CallDrop app
+
+Menu-bar app (`CallDrop/`, SwiftUI) — drag a recording onto it, add context, done.
+Also records Meet calls Granola-style: mic + system audio as split channels
+(exact You/Them labels), with calendar-triggered notifications.
+Build: `CallDrop/build.sh` → installs `~/Applications/CallDrop.app`.
+Calendar setup: see `google_calendar_auth.py` docstring.

@@ -1,0 +1,31 @@
+{
+  "": {
+    "dependencies": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CallDrop.d",
+    "object": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CallDrop.o",
+    "swift-dependencies": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/master.swiftdeps"
+  },
+  "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/Sources/CallDrop/CalendarWatcher.swift": {
+    "object": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CalendarWatcher.swift.o",
+    "swiftmodule": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CalendarWatcher~partial.swiftmodule",
+    "swift-dependencies": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CalendarWatcher.swiftdeps",
+    "diagnostics": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CalendarWatcher.dia"
+  },
+  "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/Sources/CallDrop/CallDropApp.swift": {
+    "object": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CallDropApp.swift.o",
+    "swiftmodule": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CallDropApp~partial.swiftmodule",
+    "swift-dependencies": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CallDropApp.swiftdeps",
+    "diagnostics": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/CallDropApp.dia"
+  },
+  "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/Sources/CallDrop/DropView.swift": {
+    "object": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/DropView.swift.o",
+    "swiftmodule": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/DropView~partial.swiftmodule",
+    "swift-dependencies": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/DropView.swiftdeps",
+    "diagnostics": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/DropView.dia"
+  },
+  "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/Sources/CallDrop/Recorder.swift": {
+    "object": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/Recorder.swift.o",
+    "swiftmodule": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/Recorder~partial.swiftmodule",
+    "swift-dependencies": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/Recorder.swiftdeps",
+    "diagnostics": "/Users/juan_/Vibecoding/transcribe-pipeline/CallDrop/.build/arm64-apple-macosx/release/CallDrop.build/Recorder.dia"
+  }
+}

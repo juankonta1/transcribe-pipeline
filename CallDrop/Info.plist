@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>CallDrop</string>
+    <key>CFBundleDisplayName</key>
+    <string>CallDrop</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.juan.calldrop</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleExecutable</key>
+    <string>CallDrop</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>15.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>CallDrop records your side of calls so they can be transcribed.</string>
+    <key>NSAudioCaptureUsageDescription</key>
+    <string>CallDrop records call audio (the other participants) so calls can be transcribed.</string>
+</dict>
+</plist>
