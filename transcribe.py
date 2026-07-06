@@ -26,6 +26,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
+import urllib.request
 from pathlib import Path
 
 PROJECT_DIR = Path(__file__).resolve().parent
@@ -36,6 +38,9 @@ AUDIO_EXTS = {".m4a", ".mp3", ".wav", ".aac", ".mp4", ".mov", ".aiff", ".aif",
 
 def load_config():
     cfg = {
+        "BACKEND": "local",
+        "DEEPGRAM_API_KEY": "",
+        "DEEPGRAM_MODEL": "nova-3",
         "HF_TOKEN": "",
         "MODEL": "large-v3-turbo",
         "DIARIZE_MODEL": "pyannote/speaker-diarization-community-1",
@@ -148,6 +153,49 @@ def run_whisperx(audio, tmpdir, model, lang, diarize, min_spk, max_spk):
     return json.loads(jsons[0].read_text())
 
 
+MIME_TYPES = {
+    ".m4a": "audio/mp4", ".mp4": "audio/mp4", ".mp3": "audio/mpeg",
+    ".wav": "audio/wav", ".flac": "audio/flac", ".ogg": "audio/ogg",
+    ".opus": "audio/ogg", ".webm": "audio/webm", ".aiff": "audio/aiff",
+    ".aif": "audio/aiff", ".aac": "audio/aac", ".amr": "audio/amr",
+    ".caf": "audio/x-caf", ".mov": "video/quicktime",
+}
+
+
+def run_deepgram(audio, lang):
+    params = {
+        "model": CFG["DEEPGRAM_MODEL"],
+        "language": "multi" if not lang or lang == "auto" else lang,
+        "diarize": "true",
+        "smart_format": "true",
+        "utterances": "true",
+    }
+    qs = "&".join(f"{k}={v}" for k, v in params.items())
+    req = urllib.request.Request(
+        f"https://api.deepgram.com/v1/listen?{qs}",
+        data=audio.read_bytes(),
+        headers={
+            "Authorization": f"Token {CFG['DEEPGRAM_API_KEY']}",
+            "Content-Type": MIME_TYPES.get(audio.suffix.lower(), "application/octet-stream"),
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=600) as resp:
+        data = json.loads(resp.read().decode())
+
+    utts = data.get("results", {}).get("utterances", [])
+    if not utts:
+        raise RuntimeError("Deepgram returned no utterances")
+    segments = [
+        {"start": u.get("start", 0), "end": u.get("end", 0),
+         "text": u.get("transcript", ""), "speaker": f"SPEAKER_{u.get('speaker', 0):02d}"}
+        for u in utts
+    ]
+    channel = data["results"].get("channels", [{}])[0]
+    language = channel.get("detected_language") or params["language"]
+    return {"segments": segments, "language": language}
+
+
 def to_markdown(result, title, rec_date, duration, model, diarized):
     lang = result.get("language", "?")
     lines = [
@@ -156,8 +204,8 @@ def to_markdown(result, title, rec_date, duration, model, diarized):
         f"- **Date:** {rec_date.strftime('%Y-%m-%d %H:%M')}",
         f"- **Duration:** {hms(duration)}",
         f"- **Detected language:** {lang}",
-        f"- **Model:** {model} (local WhisperX)"
-        + ("" if diarized else " — no speaker labels (HF token not set)"),
+        f"- **Model:** {model}"
+        + ("" if diarized else " — no speaker labels"),
         "",
         "---",
         "",
@@ -232,26 +280,38 @@ def unique_dir(base):
 def process_file(audio, args):
     audio = audio.resolve()
     title = audio.stem
+    t0 = time.time()
     log(f"processing: {audio.name}")
     wait_until_stable(audio)
 
-    diarize = not args.no_diarize and bool(CFG["HF_TOKEN"])
-    if not args.no_diarize and not CFG["HF_TOKEN"]:
-        log("HF_TOKEN not set in config.env — transcribing WITHOUT speaker labels")
-
-    model = args.model or CFG["MODEL"]
     lang = args.lang or CFG["LANGUAGE"]
     duration = audio_duration(audio)
     rec_date = dt.datetime.fromtimestamp(audio.stat().st_mtime)
-    log(f"  model={model} lang={lang} diarize={diarize} duration={hms(duration)}")
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        result = run_whisperx(audio, tmpdir, model, lang, diarize,
-                              args.min_speakers, args.max_speakers)
+    result = None
+    if CFG["BACKEND"].lower() == "deepgram" and CFG["DEEPGRAM_API_KEY"] and not args.local:
+        log(f"  backend=deepgram model={CFG['DEEPGRAM_MODEL']} lang={lang} duration={hms(duration)}")
+        try:
+            result = run_deepgram(audio, lang)
+            diarize = not args.no_diarize
+            model_desc = f"{CFG['DEEPGRAM_MODEL']} (Deepgram API)"
+        except Exception as e:
+            log(f"  Deepgram failed ({e}) — falling back to local WhisperX")
+
+    if result is None:
+        diarize = not args.no_diarize and bool(CFG["HF_TOKEN"])
+        if not args.no_diarize and not CFG["HF_TOKEN"]:
+            log("HF_TOKEN not set in config.env — transcribing WITHOUT speaker labels")
+        model = args.model or CFG["MODEL"]
+        model_desc = f"{model} (local WhisperX)"
+        log(f"  backend=local model={model} lang={lang} diarize={diarize} duration={hms(duration)}")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = run_whisperx(audio, tmpdir, model, lang, diarize,
+                                  args.min_speakers, args.max_speakers)
 
     dest = unique_dir(OUTPUT_DIR / f"{rec_date.strftime('%Y-%m-%d')} - {title}")
     dest.mkdir(parents=True)
-    md = to_markdown(result, title, rec_date, duration, model, diarize)
+    md = to_markdown(result, title, rec_date, duration, model_desc, diarize)
     (dest / "transcript.md").write_text(md)
     (dest / "transcript.raw.json").write_text(json.dumps(result, ensure_ascii=False, indent=1))
     shutil.move(str(audio), dest / audio.name)
@@ -260,7 +320,7 @@ def process_file(audio, args):
         if clean_with_claude(dest / "transcript.md", dest / "transcript_clean.md"):
             log("  claude cleanup pass done")
 
-    log(f"  done -> {dest}")
+    log(f"  done in {int(time.time() - t0)}s -> {dest}")
     notify("Transcript ready", f"{title} ({hms(duration)})"
            + ("" if diarize else " — no speakers, HF token missing"))
     return dest
@@ -282,6 +342,7 @@ def main():
     ap.add_argument("--model")
     ap.add_argument("--lang")
     ap.add_argument("--no-diarize", action="store_true")
+    ap.add_argument("--local", action="store_true", help="force local WhisperX backend")
     ap.add_argument("--min-speakers", type=int)
     ap.add_argument("--max-speakers", type=int)
     ap.add_argument("--clean", action="store_true")

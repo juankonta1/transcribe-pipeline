@@ -1,9 +1,17 @@
 # transcribe-pipeline
 
-Free, local, diarized transcription for call recordings on macOS (Apple Silicon).
-Built around [WhisperX](https://github.com/m-bain/whisperX): Whisper large-v3 for
-transcription (best free model for Spanish/English/Spanglish code-switching) +
-pyannote for speaker labels. Everything runs on-device — recordings never leave the Mac.
+Diarized transcription for call recordings on macOS with two backends:
+
+- **deepgram** (default): Nova-3 Multilingual API — transcript in ~20-60s, explicit
+  Spanish/English code-switching support, diarization included. Falls back to local
+  automatically if the API is unreachable.
+- **local**: [WhisperX](https://github.com/m-bain/whisperX) (Whisper large-v3-turbo +
+  pyannote), fully on-device and free — slower (roughly 1.3x audio duration with
+  diarization on CPU). Force per-file with `transcribe file.m4a --local`.
+
+Backend is set in `config.env` (`BACKEND=deepgram|local`). API keys live in
+`config.env` (gitignored) and in the macOS Keychain:
+`security find-generic-password -s deepgram-api-key -w` (also `huggingface-token-transcribe`).
 
 ## Daily workflow
 
