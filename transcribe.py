@@ -162,6 +162,20 @@ MIME_TYPES = {
 }
 
 
+def compress_for_upload(audio, tmpdir):
+    """Mono 24k Opus — ~6x smaller upload so slow uplinks don't hit Deepgram's
+    request timeout. Speech-recognition quality is unaffected (ASR uses 16kHz mono)."""
+    out = Path(tmpdir) / (audio.stem + ".ogg")
+    env = os.environ.copy()
+    env["PATH"] = f"/opt/homebrew/bin:{env.get('PATH', '')}"
+    subprocess.run(
+        ["ffmpeg", "-y", "-v", "error", "-i", str(audio),
+         "-ac", "1", "-c:a", "libopus", "-b:a", "24k", str(out)],
+        check=True, capture_output=True, env=env, timeout=300,
+    )
+    return out
+
+
 def run_deepgram(audio, lang):
     params = {
         "model": CFG["DEEPGRAM_MODEL"],
@@ -171,17 +185,32 @@ def run_deepgram(audio, lang):
         "utterances": "true",
     }
     qs = "&".join(f"{k}={v}" for k, v in params.items())
-    req = urllib.request.Request(
-        f"https://api.deepgram.com/v1/listen?{qs}",
-        data=audio.read_bytes(),
-        headers={
-            "Authorization": f"Token {CFG['DEEPGRAM_API_KEY']}",
-            "Content-Type": MIME_TYPES.get(audio.suffix.lower(), "application/octet-stream"),
-        },
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=600) as resp:
-        data = json.loads(resp.read().decode())
+    with tempfile.TemporaryDirectory() as tmpdir:
+        upload = audio
+        if audio.stat().st_size > 8 * 1024 * 1024:
+            upload = compress_for_upload(audio, tmpdir)
+            log(f"  compressed for upload: {audio.stat().st_size // 2**20}MB -> "
+                f"{max(1, upload.stat().st_size // 2**20)}MB")
+        body = upload.read_bytes()
+        mime = MIME_TYPES.get(upload.suffix.lower(), "application/octet-stream")
+
+        data = None
+        for attempt in (1, 2):
+            req = urllib.request.Request(
+                f"https://api.deepgram.com/v1/listen?{qs}",
+                data=body,
+                headers={"Authorization": f"Token {CFG['DEEPGRAM_API_KEY']}",
+                         "Content-Type": mime},
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=600) as resp:
+                    data = json.loads(resp.read().decode())
+                break
+            except Exception as e:
+                if attempt == 2:
+                    raise
+                log(f"  Deepgram attempt 1 failed ({e}); retrying")
 
     utts = data.get("results", {}).get("utterances", [])
     if not utts:
