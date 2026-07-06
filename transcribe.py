@@ -38,6 +38,7 @@ def load_config():
     cfg = {
         "HF_TOKEN": "",
         "MODEL": "large-v3-turbo",
+        "DIARIZE_MODEL": "pyannote/speaker-diarization-community-1",
         "LANGUAGE": "auto",
         "OUTPUT_DIR": str(Path.home() / "Vibecoding" / "Transcripts"),
         "CLEAN": "false",
@@ -124,7 +125,8 @@ def run_whisperx(audio, tmpdir, model, lang, diarize, min_spk, max_spk):
     if lang and lang != "auto":
         cmd += ["--language", lang]
     if diarize:
-        cmd += ["--diarize", "--hf_token", CFG["HF_TOKEN"]]
+        cmd += ["--diarize", "--diarize_model", CFG["DIARIZE_MODEL"],
+                "--hf_token", CFG["HF_TOKEN"]]
         if min_spk:
             cmd += ["--min_speakers", str(min_spk)]
         if max_spk:

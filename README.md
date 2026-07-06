@@ -33,8 +33,8 @@ transcribe --inbox                  # drain the inbox manually
 - Config lives in `config.env` (HF token, default model, output dir).
 - Speaker diarization needs a free Hugging Face token in `config.env`
   (`HF_TOKEN=hf_...`) after accepting terms at
-  [pyannote/segmentation-3.0](https://huggingface.co/pyannote/segmentation-3.0) and
-  [pyannote/speaker-diarization-3.1](https://huggingface.co/pyannote/speaker-diarization-3.1).
+  [pyannote/speaker-diarization-community-1](https://huggingface.co/pyannote/speaker-diarization-community-1)
+  (pyannote.audio 4.x needs this repo even when using the older 3.1 pipeline).
   Without a token the pipeline still works, just without speaker labels.
 - Python env: `.venv/` (created with `uv venv --python 3.12` + `uv pip install whisperx`).
 - Watcher: `~/Library/LaunchAgents/com.juan.transcribe-inbox.plist`
