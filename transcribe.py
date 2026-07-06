@@ -162,33 +162,50 @@ MIME_TYPES = {
 }
 
 
-def compress_for_upload(audio, tmpdir):
-    """Mono 24k Opus — ~6x smaller upload so slow uplinks don't hit Deepgram's
-    request timeout. Speech-recognition quality is unaffected (ASR uses 16kHz mono)."""
+def load_meta(audio):
+    """Optional sidecar written by the CallDrop app: <stem>.meta.json with
+    {"context": "...", "channels": "split"|"mixed", "title": "..."}.
+    channels=split means ch0 = user's mic, ch1 = other participants."""
+    sidecar = audio.parent / (audio.stem + ".meta.json")
+    if sidecar.exists():
+        try:
+            return json.loads(sidecar.read_text()), sidecar
+        except Exception as e:
+            log(f"  bad sidecar {sidecar.name}: {e}")
+    return {}, None
+
+
+def compress_for_upload(audio, tmpdir, split=False):
+    """Opus re-encode — ~6x smaller upload so slow uplinks don't hit Deepgram's
+    request timeout. Mono 24k normally; stereo 32k when channels carry speakers."""
     out = Path(tmpdir) / (audio.stem + ".ogg")
     env = os.environ.copy()
     env["PATH"] = f"/opt/homebrew/bin:{env.get('PATH', '')}"
+    ch = ["-ac", "2", "-b:a", "32k"] if split else ["-ac", "1", "-b:a", "24k"]
     subprocess.run(
         ["ffmpeg", "-y", "-v", "error", "-i", str(audio),
-         "-ac", "1", "-c:a", "libopus", "-b:a", "24k", str(out)],
+         "-c:a", "libopus", *ch, str(out)],
         check=True, capture_output=True, env=env, timeout=300,
     )
     return out
 
 
-def run_deepgram(audio, lang):
+def run_deepgram(audio, lang, split=False):
     params = {
         "model": CFG["DEEPGRAM_MODEL"],
         "language": "multi" if not lang or lang == "auto" else lang,
-        "diarize": "true",
         "smart_format": "true",
         "utterances": "true",
     }
+    if split:
+        params["multichannel"] = "true"  # ch0=You, ch1=Them: exact attribution
+    else:
+        params["diarize"] = "true"
     qs = "&".join(f"{k}={v}" for k, v in params.items())
     with tempfile.TemporaryDirectory() as tmpdir:
         upload = audio
         if audio.stat().st_size > 8 * 1024 * 1024:
-            upload = compress_for_upload(audio, tmpdir)
+            upload = compress_for_upload(audio, tmpdir, split)
             log(f"  compressed for upload: {audio.stat().st_size // 2**20}MB -> "
                 f"{max(1, upload.stat().st_size // 2**20)}MB")
         body = upload.read_bytes()
@@ -215,17 +232,26 @@ def run_deepgram(audio, lang):
     utts = data.get("results", {}).get("utterances", [])
     if not utts:
         raise RuntimeError("Deepgram returned no utterances")
-    segments = [
-        {"start": u.get("start", 0), "end": u.get("end", 0),
-         "text": u.get("transcript", ""), "speaker": f"SPEAKER_{u.get('speaker', 0):02d}"}
-        for u in utts
-    ]
+    if split:
+        segments = [
+            {"start": u.get("start", 0), "end": u.get("end", 0),
+             "text": u.get("transcript", ""),
+             "speaker": "You" if u.get("channel", 0) == 0 else "Them"}
+            for u in utts
+        ]
+        segments.sort(key=lambda s: s["start"])
+    else:
+        segments = [
+            {"start": u.get("start", 0), "end": u.get("end", 0),
+             "text": u.get("transcript", ""), "speaker": f"SPEAKER_{u.get('speaker', 0):02d}"}
+            for u in utts
+        ]
     channel = data["results"].get("channels", [{}])[0]
     language = channel.get("detected_language") or params["language"]
     return {"segments": segments, "language": language}
 
 
-def to_markdown(result, title, rec_date, duration, model, diarized):
+def to_markdown(result, title, rec_date, duration, model, diarized, context=""):
     lang = result.get("language", "?")
     lines = [
         f"# {title}",
@@ -236,15 +262,18 @@ def to_markdown(result, title, rec_date, duration, model, diarized):
         f"- **Model:** {model}"
         + ("" if diarized else " — no speaker labels"),
         "",
-        "---",
-        "",
     ]
+    if context:
+        lines += ["## Context", "", context.strip(), ""]
+    lines += ["---", ""]
 
     speaker_names = {}
 
     def name_for(raw):
         if raw is None:
             return "Speaker ?"
+        if not str(raw).startswith("SPEAKER_"):
+            return str(raw)  # already a friendly label (You/Them)
         if raw not in speaker_names:
             speaker_names[raw] = f"Speaker {len(speaker_names) + 1}"
         return speaker_names[raw]
@@ -272,18 +301,20 @@ def to_markdown(result, title, rec_date, duration, model, diarized):
     return "\n".join(lines)
 
 
-def clean_with_claude(md_path, clean_path):
+def clean_with_claude(md_path, clean_path, context=""):
     claude = shutil.which("claude") or str(Path.home() / ".local/bin/claude")
     if not Path(claude).exists():
         log("claude CLI not found; skipping cleanup pass")
         return False
+    ctx = (f"Call context provided by the user: {context.strip()}\n"
+           "Use it to correct names, companies, and topic-specific terms.\n\n") if context else ""
     prompt = (
         "Below is an auto-generated meeting transcript. The audio mixed Spanish and "
         "English (Spanglish), so some code-switched words were transcribed phonetically "
         "or in the wrong language. Fix obvious transcription errors using context, keep "
         "ALL speaker labels and timestamps exactly as they are, do not summarize, do not "
         "omit anything. Output ONLY the corrected markdown transcript, nothing else.\n\n"
-        + md_path.read_text()
+        + ctx + md_path.read_text()
     )
     try:
         proc = subprocess.run([claude, "-p", prompt], capture_output=True,
@@ -308,10 +339,16 @@ def unique_dir(base):
 
 def process_file(audio, args):
     audio = audio.resolve()
-    title = audio.stem
     t0 = time.time()
     log(f"processing: {audio.name}")
     wait_until_stable(audio)
+
+    meta, sidecar = load_meta(audio)
+    title = meta.get("title") or audio.stem
+    context = meta.get("context", "")
+    split = meta.get("channels") == "split"
+    if meta:
+        log(f"  meta: split={split} context={'yes' if context else 'no'}")
 
     lang = args.lang or CFG["LANGUAGE"]
     duration = audio_duration(audio)
@@ -321,7 +358,7 @@ def process_file(audio, args):
     if CFG["BACKEND"].lower() == "deepgram" and CFG["DEEPGRAM_API_KEY"] and not args.local:
         log(f"  backend=deepgram model={CFG['DEEPGRAM_MODEL']} lang={lang} duration={hms(duration)}")
         try:
-            result = run_deepgram(audio, lang)
+            result = run_deepgram(audio, lang, split)
             diarize = not args.no_diarize
             model_desc = f"{CFG['DEEPGRAM_MODEL']} (Deepgram API)"
         except Exception as e:
@@ -340,13 +377,15 @@ def process_file(audio, args):
 
     dest = unique_dir(OUTPUT_DIR / f"{rec_date.strftime('%Y-%m-%d')} - {title}")
     dest.mkdir(parents=True)
-    md = to_markdown(result, title, rec_date, duration, model_desc, diarize)
+    md = to_markdown(result, title, rec_date, duration, model_desc, diarize, context)
     (dest / "transcript.md").write_text(md)
     (dest / "transcript.raw.json").write_text(json.dumps(result, ensure_ascii=False, indent=1))
     shutil.move(str(audio), dest / audio.name)
+    if sidecar and sidecar.exists():
+        shutil.move(str(sidecar), dest / sidecar.name)
 
     if args.clean or CFG["CLEAN"].lower() == "true":
-        if clean_with_claude(dest / "transcript.md", dest / "transcript_clean.md"):
+        if clean_with_claude(dest / "transcript.md", dest / "transcript_clean.md", context):
             log("  claude cleanup pass done")
 
     log(f"  done in {int(time.time() - t0)}s -> {dest}")
@@ -398,6 +437,9 @@ def main():
                     notify("Transcription failed", f.name)
                     FAILED.mkdir(parents=True, exist_ok=True)
                     shutil.move(str(f), FAILED / f.name)
+                    stray = f.parent / (f.stem + ".meta.json")
+                    if stray.exists():
+                        shutil.move(str(stray), FAILED / stray.name)
     elif args.files:
         for f in args.files:
             if not f.exists():
